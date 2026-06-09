@@ -17,6 +17,8 @@ def load_model_and_features():
 
 def predict_single(record: Dict[str, Any]):
     model, features = load_model_and_features()
+    print("FEATURES:", features)
+    
     df = pd.DataFrame([record])
     df = df[features]  # keep only selected features
     proba = float(model.predict_proba(df)[:, 1][0])
