@@ -53,7 +53,7 @@ def safe_post(url, payload, retries=5):
     """Send data to FastAPI backend safely with retries"""
     for i in range(retries):
         try:
-            r = requests.post(url, json=payload, timeout=10)
+            r = requests.post(url, json=payload, timeout=60)
             r.raise_for_status()
             return r.json()
         except requests.exceptions.RequestException as e:
