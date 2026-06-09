@@ -15,6 +15,8 @@ async def root():
 @app.post("/predict")
 async def predict(records: Record):
     print("PREDICT ENDPOINT HIT")
+    print("FIRST ROW:", records.data[0])
+    
     """
     Accepts a list of customer feature dicts and returns predictions for all.
     """
