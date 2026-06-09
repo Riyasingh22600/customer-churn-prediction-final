@@ -63,55 +63,100 @@ def safe_post(url, payload, retries=5):
     return None
 
 # ---------------- CSV Upload ----------------
-uploaded = st.file_uploader("📂 Upload customer data (CSV with same columns)", type=["csv"])
+uploaded = st.file_uploader(
+    "📂 Upload customer data (CSV with same columns)",
+    type=["csv"]
+)
 
 if uploaded:
     df = pd.read_csv(uploaded)
+
     st.write("👀 Preview of uploaded data:")
     st.dataframe(df.head())
 
     if st.button("🚀 Predict for Uploaded Data"):
-        # Fill missing features with 0
+
         payload_data = [
             {feat: row.get(feat, 0) for feat in selected_features}
             for _, row in df.iterrows()
         ]
-        payload = {"data": payload_data}
-        results = safe_post(f"{API_URL}/predict", payload)
 
-        if results:
-            st.subheader("📌 Predictions")
-            pred_df = pd.DataFrame(results)
-            if "prediction" in pred_df.columns and "probability" in pred_df.columns:
-                pred_df = pd.DataFrame({
-                    "Prediction": pred_df["prediction"].map(lambda x: "Yes (Churn)" if x == 1 else "No"),
-                    "Probability (%)": (pred_df["probability"] * 100).round(2)
-                })
-            st.dataframe(pred_df)
+        batch_size = 200
+        all_results = []
+
+        progress = st.progress(0)
+
+        for start in range(0, len(payload_data), batch_size):
+
+            batch = payload_data[start:start + batch_size]
+
+            payload = {"data": batch}
+
+            results = safe_post(
+                f"{API_URL}/predict",
+                payload
+            )
+
+            if results:
+                all_results.extend(results)
+
+            progress.progress(
+                min((start + batch_size) / len(payload_data), 1.0)
+            )
+
+        st.subheader("📌 Predictions")
+
+        pred_df = pd.DataFrame(all_results)
+
+        if (
+            "prediction" in pred_df.columns
+            and "probability" in pred_df.columns
+        ):
+            pred_df = pd.DataFrame({
+                "Prediction": pred_df["prediction"].map(
+                    lambda x: "Yes (Churn)" if x == 1 else "No"
+                ),
+                "Probability (%)": (
+                    pred_df["probability"] * 100
+                ).round(2)
+            })
+
+        st.dataframe(pred_df)
 
 # ---------------- Manual Input ----------------
 else:
     st.sidebar.header("✍️ Enter Customer Details")
 
     manual_input = {}
+
     for feat in selected_features:
         label, desc = feature_mapping.get(feat, (feat, ""))
         val = st.sidebar.text_input(label, help=desc)
+
         try:
             manual_input[feat] = float(val) if val != "" else 0
         except ValueError:
             manual_input[feat] = val
 
     if st.sidebar.button("🚀 Predict Manually"):
-        payload = {"data": [manual_input]}  # Single row wrapped in list
-        res = safe_post(f"{API_URL}/predict", payload)
+        payload = {"data": [manual_input]}
+
+        res = safe_post(
+            f"{API_URL}/predict",
+            payload
+        )
 
         if res:
             pred = res[0].get("prediction")
             prob = res[0].get("probability")
+
             if pred is not None and prob is not None:
                 label = "Yes (Churn)" if pred == 1 else "No"
+
                 st.success(f"**Prediction:** {label}")
-                st.info(f"**Probability of Churn:** {round(prob*100,2)} %")
+                st.info(
+                    f"**Probability of Churn:** "
+                    f"{round(prob * 100, 2)} %"
+                )
             else:
                 st.json(res[0])
