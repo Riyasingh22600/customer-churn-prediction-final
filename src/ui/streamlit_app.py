@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")
 from src.models.utils import load_object
 
 # ---------------- Page Setup ----------------
-API_URL = "https://customer-churn-project-2.onrender.com"  # Docker Compose service name
+API_URL = "https://customer-churn-api-hf8s.onrender.com/predict"  # Docker Compose service name
 st.set_page_config(page_title="Customer Churn Prediction", layout="wide")
 
 st.title("📊 Customer Churn Prediction Dashboard")
